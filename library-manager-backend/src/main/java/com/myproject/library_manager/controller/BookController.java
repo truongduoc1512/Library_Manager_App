@@ -1,52 +1,81 @@
 package com.myproject.library_manager.controller;
 
-import org.springframework.web.bind.annotation.RestController;
-
 import com.myproject.library_manager.model.Book;
-import com.myproject.library_manager.repository.BookRepository;
+import com.myproject.library_manager.service.BookService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-
-
 
 @RestController
 @RequestMapping("/api/books")
 @CrossOrigin(origins = "http://localhost:4200")
-
 public class BookController {
-    private final BookRepository bookRepository;
 
-    public BookController(BookRepository bookRepository) {
-        this.bookRepository = bookRepository;
+    private final BookService bookService;
+
+    public BookController(BookService bookService) {
+        this.bookService = bookService;
     }
 
+    // CRUD
     @GetMapping
     public List<Book> getAllBooks() {
-        return bookRepository.findAll();
+        return bookService.getAllBooks();
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Book> getBookById(@PathVariable Integer id) {
+        return bookService.getBookById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
     public Book addBook(@RequestBody Book book) {
-        return bookRepository.save(book);
+        return bookService.addBook(book);
     }
 
     @PutMapping("/{id}")
-    public Book updateBook(@PathVariable Integer id, @RequestBody Book book) {
-        book.setId(id);
-        return bookRepository.save(book);
+    public ResponseEntity<Book> updateBook(@PathVariable Integer id, @RequestBody Book book) {
+        try {
+            return ResponseEntity.ok(bookService.updateBook(id, book));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @DeleteMapping("/{id}")
-    public void deleteBook(@PathVariable Integer id) {
-        bookRepository.deleteById(id);
+    public ResponseEntity<Void> deleteBook(@PathVariable Integer id) {
+        bookService.deleteBook(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // API tìm kiếm nâng cao
+    @GetMapping("/search/title")
+    public List<Book> searchByTitle(@RequestParam String title) {
+        return bookService.searchByTitle(title);
+    }
+
+    @GetMapping("/search/author")
+    public List<Book> searchByAuthor(@RequestParam String author) {
+        return bookService.searchByAuthor(author);
+    }
+
+    @GetMapping("/search/publisher")
+    public List<Book> searchByPublisher(@RequestParam String publisher) {
+        return bookService.searchByPublisher(publisher);
+    }
+
+    @GetMapping("/search/category")
+    public List<Book> searchByCategory(@RequestParam String category) {
+        return bookService.searchByCategory(category);
+    }
+
+    @GetMapping("/search/isbn")
+    public ResponseEntity<Book> searchByIsbn(@RequestParam String isbn) {
+        Book book = bookService.searchByIsbn(isbn);
+        if (book != null) return ResponseEntity.ok(book);
+        return ResponseEntity.notFound().build();
     }
 }
